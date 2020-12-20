@@ -1,0 +1,8 @@
+setup.py
+discord/ext/interactions/__init__.py
+discord/ext/interactions/errors.py
+discord/ext/interactions/models.py
+discord_ext_interactions.egg-info/PKG-INFO
+discord_ext_interactions.egg-info/SOURCES.txt
+discord_ext_interactions.egg-info/dependency_links.txt
+discord_ext_interactions.egg-info/top_level.txt
