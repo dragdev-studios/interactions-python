@@ -301,7 +301,8 @@ class SlashCommand:
                         data=to_json(payload),
                         headers={
                             "Authorization": "Bot " + token,
-                            "User-Agent": USERAGENT
+                            "User-Agent": USERAGENT,
+                            "Content-Type": "application/json"
                         }
                 ) as response:
                     if response.status != 200:
