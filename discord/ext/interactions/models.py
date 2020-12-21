@@ -305,7 +305,7 @@ class SlashCommand:
                             "Content-Type": "application/json"
                         }
                 ) as response:
-                    if response.status != 200:
+                    if response.status not in range(200, 300):
                         raise HTTPException(
                             response,
                             await response.json()
