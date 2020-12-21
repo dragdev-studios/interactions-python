@@ -369,3 +369,11 @@ class SlashCommandContainer:
             schema["guild_id"] = guild.id
             schema["uri"] = "/applications/{client_id}/guilds/{guild_id}/commands"
         self._publish.append(schema)
+
+    async def publish_command(self, it: List[dict] = None):
+        """
+        Publishes commands.
+
+        If you don't pass anything to this, it'll publish all of the commands added via SCC.add_command.
+        """
+        return await SlashCommand.create_global_commands(self.bot.user.id, self.bot.http.token, *it or self._publish)
