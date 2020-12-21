@@ -1,3 +1,4 @@
+import logging
 import textwrap
 from enum import IntEnum
 from typing import Any, List, Union
@@ -260,7 +261,7 @@ class SlashCommand:
             "type": 1 if isinstance(command, commands.Command) else 2,
             "options": []
         }
-        if isinstance(command,  commands.Group):
+        if isinstance(command, commands.Group):
             _options = []
             for cmd in command.walk_commands():
                 _options.append(SlashCommand._resolve_options(cmd))
@@ -287,20 +288,84 @@ class SlashCommand:
         return content
 
     @staticmethod
-    async def create_global_commands(client_id: int, token, command_list: List[Union[commands.Command, commands.Group]]):
+    async def create_global_commands(client_id: int, token, *_commands):
         async with ClientSession() as session:
-            for command in command_list:
-                payload = SlashCommand._resolve_options(command)
+            for command in _commands:
+                payload = command
+                uri = payload.pop("uri", "/applications/{client_id}/commands").format(
+                    client_id=str(client_id),
+                    guild_id=str(payload.pop("guild_id", ""))
+                )
                 async with session.post(
-                    BASE+"/applications/{}/commands".format(str(client_id)),
-                    data=to_json(payload),
-                    headers={
-                        "Authorization": "Bot " + token,
-                        "User-Agent": USERAGENT
-                    }
+                        BASE + "/applications/{}/commands".format(str(client_id)),
+                        data=to_json(payload),
+                        headers={
+                            "Authorization": "Bot " + token,
+                            "User-Agent": USERAGENT
+                        }
                 ) as response:
                     if response.status != 200:
                         raise HTTPException(
                             response,
                             await response.json()
                         )
+
+    @staticmethod
+    def _validate_schema(s):
+        logging.warning("Schema validator is not fully implemented, only partial validation is available.")
+        name = s["name"]
+        description = s["description"]
+        if len(name) > 32 or len(name) < 3:
+            raise IndexError("Name \"{}\" is too long or short. Names must be between 3 and 32 characters.")
+        if len(description) > 100 or len(description) < 1:
+            raise IndexError("Description \"{}\" is too long or short. Description must be between 1 and 100 characters."
+                             .format(description))
+        for option in s["options"]:
+            name = option["name"]
+            description = option["description"]
+            if len(name) > 32 or len(name) < 1:
+                raise IndexError("Option name \"{}\" is too long or short. Names must be between 1 and 32 characters.")
+            if len(description) > 100 or len(description) < 1:
+                raise IndexError(
+                    "Option description \"{}\" is too long or short. Description must be between 1 and 100 characters."
+                    .format(description))
+            if len(option.get("choices", [])) > 10:
+                raise IndexError("Option {} has too many choices - There's a limit of 10.".format(name))
+        return True
+
+
+class SlashCommandContainer:
+    """Simple container class that automatically generates and publishes slash commands."""
+
+    def __init__(self, bot, exclude: List[Union[commands.Command, commands.Group]] = None):
+        """
+        creates the class
+
+        :param bot: The bot instance (or something with a commands attribute)
+        :param exclude: A list of commands, or groups, to exclude from slash commands.
+        """
+        self.bot = bot
+        self.excluded = exclude or []
+        self._publish = []
+
+    def add_command(self, obj: Union[commands.Command, commands.Group], guild: discord.Guild = None,
+                    auto_generate_schema: bool = True, **kwargs):
+        """
+        Adds a command to publish as a slash command.
+
+        :param obj: The command/group function
+        :param guild: If this command is guild-only, this is the guild to assign it to.
+        :param auto_generate_schema: Whether to automatically generate the schema (payload data). If False, you must provide it in kwargs.
+        """
+        if obj in self._publish:
+            raise IndexError("Command \"{}\" is already registered as a slash command.".format(repr(obj)))
+
+        if auto_generate_schema:
+            schema = SlashCommand._resolve_options(obj)
+        else:
+            schema = kwargs
+            SlashCommand._validate_schema(schema)
+        if guild:
+            schema["guild_id"] = guild.id
+            schema["uri"] = "/applications/{client_id}/guilds/{guild_id}/commands"
+        self._publish.append(schema)

@@ -2,7 +2,7 @@ from setuptools import setup
 
 setup(
     name='discord-ext-interactions',
-    version='0.0.1',
+    version='0.0.2',
     packages=['discord.ext.interactions'],
     url='https://github.com/dragdev-studios/interactions-python',
     license='MIT',
