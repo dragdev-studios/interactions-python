@@ -271,7 +271,7 @@ class SlashCommand:
             _options = []
             for argument in args:
                 if isinstance(argument, str):
-                    continue
+                    raise TypeError("Got unexpected string in argument list: " + argument)
                 _type = SlashCommand.BASE_TYPES.get(argument, ApplicationCommandOptionType.STRING)
                 required = argument.default == Param.empty
                 # default = None if required else Param.default
