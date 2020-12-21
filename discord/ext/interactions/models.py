@@ -267,7 +267,7 @@ class SlashCommand:
                 _options.append(SlashCommand._resolve_options(cmd))
             content["options"] += _options
         else:
-            args: Union[str, Param] = command.clean_params
+            args: Union[str, Param] = command.clean_params.values()
             _options = []
             for argument in args:
                 if isinstance(argument, str):
