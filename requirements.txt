@@ -1,0 +1,4 @@
+aiohttp
+fastapi
+setuptools
+discord.py

@@ -18,6 +18,7 @@ USERAGENT = "DiscordBot (https://github.com/dragdev-studios/interactions-python,
 
 def to_json(d: dict):
     from json import dumps
+
     return dumps(d, ensure_ascii=True)
 
 
@@ -51,7 +52,9 @@ class ApplicationCommandInteractionDataOption:
 class ApplicationCommandInteractionData:
     """https://discord.com/developers/docs/interactions/slash-commands#interaction-applicationcommandinteractiondata"""
 
-    def __init__(self, id: str, name: str, options: ApplicationCommandInteractionDataOption):
+    def __init__(
+        self, id: str, name: str, options: ApplicationCommandInteractionDataOption
+    ):
         self.id = int(id)
         self.name = name
         self.options = options
@@ -69,8 +72,20 @@ class ApplicationCommandOptionType(IntEnum):
 
 
 class Interaction:
-    def __init__(self, bot, *, id: str, type: int, data: ApplicationCommandInteractionData, guild: discord.Guild,
-                 channel: discord.TextChannel, member: discord.Member, token: str, version: int = 1, raw: dict):
+    def __init__(
+        self,
+        bot,
+        *,
+        id: str,
+        type: int,
+        data: ApplicationCommandInteractionData,
+        guild: discord.Guild,
+        channel: discord.TextChannel,
+        member: discord.Member,
+        token: str,
+        version: int = 1,
+        raw: dict
+    ):
         self.bot = bot
         self.id = int(id)
         self.type = InteractionType(type)
@@ -88,7 +103,9 @@ class Interaction:
         self.__raw = raw
 
     @classmethod
-    async def from_request(cls, bot: Union[commands.Bot, commands.AutoShardedBot], body: dict):
+    async def from_request(
+        cls, bot: Union[commands.Bot, commands.AutoShardedBot], body: dict
+    ):
         """
         Creates an Interaction from a request to a server. body should be JSON encoded.
 
@@ -103,15 +120,23 @@ class Interaction:
             type=body["type"],
             guild=guild,
             channel=bot.get_channel(int(body["channel_id"])),
-            member=guild.get_member(body["member"]["id"]) or await guild.fetch_member(body["member"]["id"]),
+            member=guild.get_member(body["member"]["id"])
+            or await guild.fetch_member(body["member"]["id"]),
             token=body["token"],
             version=body["version"],
-            raw=body
+            raw=body,
         )
         return cls(bot, **kwargs)
 
-    def followup(self, content = None, *, tts = False, embed: discord.Embed = None, embeds = None,
-                 allowed_mentions = None):
+    def followup(
+        self,
+        content=None,
+        *,
+        tts=False,
+        embed: discord.Embed = None,
+        embeds=None,
+        allowed_mentions=None
+    ):
         """
         Returns parsed JSON for you to return to the request made to your interactions endpoint.
 
@@ -144,44 +169,60 @@ class Interaction:
 
         if allowed_mentions is not None:
             if self.bot.allowed_mentions is not None:
-                allowed_mentions = self.bot.allowed_mentions.merge(allowed_mentions).to_dict()
+                allowed_mentions = self.bot.allowed_mentions.merge(
+                    allowed_mentions
+                ).to_dict()
             else:
                 allowed_mentions = allowed_mentions.to_dict()
         else:
-            allowed_mentions = self.bot.allowed_mentions and self.bot.allowed_mentions.to_dict()
+            allowed_mentions = (
+                self.bot.allowed_mentions and self.bot.allowed_mentions.to_dict()
+            )
 
         result["allowed_mentions"] = allowed_mentions
 
         return result
 
-    async def edit_initial_response(self, content = None, *, tts = False, embed: discord.Embed = None, embeds = None,
-                                    allowed_mentions = None):
+    async def edit_initial_response(
+        self,
+        content=None,
+        *,
+        tts=False,
+        embed: discord.Embed = None,
+        embeds=None,
+        allowed_mentions=None
+    ):
         """Edits your initial response message.
 
         https://discord.com/developers/docs/interactions/slash-commands#followup-messages
         (PATCH /webhooks/<application_id>/<interaction_token>/messages/@original to edit your initial response to an Interaction)"""
-        URI = BASE + "/webhooks/{}/{}/messages/@original".format(str(self.bot.user.id), self.token)
+        URI = BASE + "/webhooks/{}/{}/messages/@original".format(
+            str(self.bot.user.id), self.token
+        )
         if (datetime.utcnow() - self.token_start).total_seconds() > 900:
             raise ExpiredToken
         if not self.token:
             raise InteractionsError("No interaction token provided.")
 
-        data = self.followup(content, tts=tts, embed=embed, embeds=embeds, allowed_mentions=allowed_mentions)
+        data = self.followup(
+            content,
+            tts=tts,
+            embed=embed,
+            embeds=embeds,
+            allowed_mentions=allowed_mentions,
+        )
 
         async with ClientSession() as session:
             async with session.patch(
-                    URI,
-                    data=to_json(data),
-                    headers={
-                        "Authorization": "Bot " + self.bot.http.token,
-                        "User-Agent": USERAGENT
-                    }
+                URI,
+                data=to_json(data),
+                headers={
+                    "Authorization": "Bot " + self.bot.http.token,
+                    "User-Agent": USERAGENT,
+                },
             ) as response:
                 if response.status != 200:
-                    raise HTTPException(
-                        response,
-                        await response.json()
-                    )
+                    raise HTTPException(response, await response.json())
                 res = await response.json()
         return res
 
@@ -190,7 +231,9 @@ class Interaction:
 
         https://discord.com/developers/docs/interactions/slash-commands#followup-messages
         (DELETE /webhooks/<application_id>/<interaction_token>/messages/@original to delete your initial response to an Interaction)"""
-        URI = BASE + "/webhooks/{}/{}/messages/@original".format(str(self.bot.user.id), self.token)
+        URI = BASE + "/webhooks/{}/{}/messages/@original".format(
+            str(self.bot.user.id), self.token
+        )
         if (datetime.utcnow() - self.token_start).total_seconds() > 900:
             raise ExpiredToken
         if not self.token:
@@ -198,17 +241,14 @@ class Interaction:
 
         async with ClientSession() as session:
             async with session.delete(
-                    URI,
-                    headers={
-                        "Authorization": "Bot " + self.bot.http.token,
-                        "User-Agent": USERAGENT
-                    }
+                URI,
+                headers={
+                    "Authorization": "Bot " + self.bot.http.token,
+                    "User-Agent": USERAGENT,
+                },
             ) as response:
                 if response.status != 200:
-                    raise HTTPException(
-                        response,
-                        await response.json()
-                    )
+                    raise HTTPException(response, await response.json())
                 res = await response.json()
         return res
 
@@ -217,7 +257,12 @@ class Interaction:
         raise NotImplementedError
 
     @staticmethod
-    def verify_request(X_Signature_Ed25519: str, X_Signature_Timestamp: str, raw_body: str, public_key: str):
+    def verify_request(
+        X_Signature_Ed25519: str,
+        X_Signature_Timestamp: str,
+        raw_body: str,
+        public_key: str,
+    ):
         """Verifies that a request is real.
 
         X_Signature_Ed25519 & X_Signature_Timestamp are the headers, replacing _ with -
@@ -228,11 +273,16 @@ class Interaction:
             from nacl.signing import VerifyKey
             from nacl.exceptions import BadSignatureError
         except ImportError as e:
-            raise ImportError("You must install PyNaCl before using this function.") from e
+            raise ImportError(
+                "You must install PyNaCl before using this function."
+            ) from e
 
         key = VerifyKey(bytes.fromhex(public_key))
         try:
-            key.verify(str(X_Signature_Timestamp + raw_body).encode(), bytes.fromhex(X_Signature_Ed25519))
+            key.verify(
+                str(X_Signature_Timestamp + raw_body).encode(),
+                bytes.fromhex(X_Signature_Ed25519),
+            )
         except BadSignatureError:
             return False
         else:
@@ -249,7 +299,7 @@ class SlashCommand:
         discord.Role: ApplicationCommandOptionType.ROLE,
         commands.UserConverter: ApplicationCommandOptionType.USER,
         commands.TextChannelConverter: ApplicationCommandOptionType.CHANNEL,
-        commands.RoleConverter: ApplicationCommandOptionType.ROLE
+        commands.RoleConverter: ApplicationCommandOptionType.ROLE,
     }
 
     @staticmethod
@@ -259,7 +309,7 @@ class SlashCommand:
             "name": command.name,
             "description": textwrap.shorten(command.short_doc, 100),
             "type": 1 if isinstance(command, commands.Command) else 2,
-            "options": []
+            "options": [],
         }
         if isinstance(command, commands.Group):
             _options = []
@@ -271,15 +321,19 @@ class SlashCommand:
             _options = []
             for argument in args:
                 if isinstance(argument, str):
-                    raise TypeError("Got unexpected string in argument list: " + argument)
-                _type = SlashCommand.BASE_TYPES.get(argument, ApplicationCommandOptionType.STRING)
+                    raise TypeError(
+                        "Got unexpected string in argument list: " + argument
+                    )
+                _type = SlashCommand.BASE_TYPES.get(
+                    argument, ApplicationCommandOptionType.STRING
+                )
                 required = argument.default == Param.empty
                 # default = None if required else Param.default
                 e = {
                     "name": textwrap.shorten(argument.name, 32),
                     "description": "[No Description]",
                     "type": _type,
-                    "required": required
+                    "required": required,
                 }
                 # if default:
                 #     e["default"] = default
@@ -293,52 +347,65 @@ class SlashCommand:
             for command in _commands:
                 payload = command
                 uri = payload.pop("uri", "/applications/{client_id}/commands").format(
-                    client_id=str(client_id),
-                    guild_id=str(payload.pop("guild_id", ""))
+                    client_id=str(client_id), guild_id=str(payload.pop("guild_id", ""))
                 )
                 async with session.post(
-                        BASE + "/applications/{}/commands".format(str(client_id)),
-                        data=to_json(payload),
-                        headers={
-                            "Authorization": "Bot " + token,
-                            "User-Agent": USERAGENT,
-                            "Content-Type": "application/json"
-                        }
+                    BASE + "/applications/{}/commands".format(str(client_id)),
+                    data=to_json(payload),
+                    headers={
+                        "Authorization": "Bot " + token,
+                        "User-Agent": USERAGENT,
+                        "Content-Type": "application/json",
+                    },
                 ) as response:
                     if response.status not in range(200, 300):
-                        raise HTTPException(
-                            response,
-                            await response.json()
-                        )
+                        raise HTTPException(response, await response.json())
 
     @staticmethod
     def _validate_schema(s):
-        logging.warning("Schema validator is not fully implemented, only partial validation is available.")
+        logging.warning(
+            "Schema validator is not fully implemented, only partial validation is available."
+        )
         name = s["name"]
         description = s["description"]
         if len(name) > 32 or len(name) < 3:
-            raise IndexError("Name \"{}\" is too long or short. Names must be between 3 and 32 characters.")
+            raise IndexError(
+                'Name "{}" is too long or short. Names must be between 3 and 32 characters.'
+            )
         if len(description) > 100 or len(description) < 1:
-            raise IndexError("Description \"{}\" is too long or short. Description must be between 1 and 100 characters."
-                             .format(description))
+            raise IndexError(
+                'Description "{}" is too long or short. Description must be between 1 and 100 characters.'.format(
+                    description
+                )
+            )
         for option in s["options"]:
             name = option["name"]
             description = option["description"]
             if len(name) > 32 or len(name) < 1:
-                raise IndexError("Option name \"{}\" is too long or short. Names must be between 1 and 32 characters.")
+                raise IndexError(
+                    'Option name "{}" is too long or short. Names must be between 1 and 32 characters.'
+                )
             if len(description) > 100 or len(description) < 1:
                 raise IndexError(
-                    "Option description \"{}\" is too long or short. Description must be between 1 and 100 characters."
-                    .format(description))
+                    'Option description "{}" is too long or short. Description must be between 1 and 100 characters.'.format(
+                        description
+                    )
+                )
             if len(option.get("choices", [])) > 10:
-                raise IndexError("Option {} has too many choices - There's a limit of 10.".format(name))
+                raise IndexError(
+                    "Option {} has too many choices - There's a limit of 10.".format(
+                        name
+                    )
+                )
         return True
 
 
 class SlashCommandContainer:
     """Simple container class that automatically generates and publishes slash commands."""
 
-    def __init__(self, bot, exclude: List[Union[commands.Command, commands.Group]] = None):
+    def __init__(
+        self, bot, exclude: List[Union[commands.Command, commands.Group]] = None
+    ):
         """
         creates the class
 
@@ -349,8 +416,13 @@ class SlashCommandContainer:
         self.excluded = exclude or []
         self._publish = []
 
-    def add_command(self, obj: Union[commands.Command, commands.Group], guild: discord.Guild = None,
-                    auto_generate_schema: bool = True, **kwargs):
+    def add_command(
+        self,
+        obj: Union[commands.Command, commands.Group],
+        guild: discord.Guild = None,
+        auto_generate_schema: bool = True,
+        **kwargs
+    ):
         """
         Adds a command to publish as a slash command.
 
@@ -359,7 +431,11 @@ class SlashCommandContainer:
         :param auto_generate_schema: Whether to automatically generate the schema (payload data). If False, you must provide it in kwargs.
         """
         if obj in self._publish:
-            raise IndexError("Command \"{}\" is already registered as a slash command.".format(repr(obj)))
+            raise IndexError(
+                'Command "{}" is already registered as a slash command.'.format(
+                    repr(obj)
+                )
+            )
 
         if auto_generate_schema:
             schema = SlashCommand._resolve_options(obj)
@@ -377,4 +453,6 @@ class SlashCommandContainer:
 
         If you don't pass anything to this, it'll publish all of the commands added via SCC.add_command.
         """
-        return await SlashCommand.create_global_commands(self.bot.user.id, self.bot.http.token, *it or self._publish)
+        return await SlashCommand.create_global_commands(
+            self.bot.user.id, self.bot.http.token, *it or self._publish
+        )

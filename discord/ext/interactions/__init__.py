@@ -5,5 +5,5 @@ from .models import (
     InteractionResponseFlags,
     ApplicationCommandInteractionDataOption,
     ApplicationCommandInteractionData,
-    ApplicationCommandOptionType
+    ApplicationCommandOptionType,
 )
